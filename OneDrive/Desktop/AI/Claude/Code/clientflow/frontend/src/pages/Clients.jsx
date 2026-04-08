@@ -269,8 +269,12 @@ const Clients = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
-          <p className="text-gray-500 mt-1">Manage and track your client onboarding</p>
+          <div className="flex items-center gap-2 text-xs text-sf-muted mb-1">
+            <span>Home</span><span>/</span>
+            <span className="text-sf-slate font-medium">Clients</span>
+          </div>
+          <h1 className="text-2xl font-bold text-sf-slate">Clients</h1>
+          <p className="text-sf-muted text-sm mt-0.5">Manage and track your client onboarding</p>
         </div>
         <Button onClick={() => setShowNewModal(true)}>
           <Plus className="w-4 h-4" />

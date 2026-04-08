@@ -32,14 +32,14 @@ export const statusLabel = (status) => {
 
 export const statusColor = (status) => {
   const colors = {
-    not_started: 'bg-gray-100 text-gray-700',
-    in_progress: 'bg-blue-100 text-blue-700',
-    submitted: 'bg-yellow-100 text-yellow-700',
-    completed: 'bg-green-100 text-green-700',
-    pending: 'bg-gray-100 text-gray-600',
-    done: 'bg-green-100 text-green-700',
+    not_started: 'bg-gray-100 text-gray-600 border border-gray-200',
+    in_progress: 'bg-blue-50 text-blue-700 border border-blue-200',
+    submitted:   'bg-orange-50 text-orange-700 border border-orange-200',
+    completed:   'bg-green-50 text-green-700 border border-green-200',
+    pending:     'bg-gray-100 text-gray-600 border border-gray-200',
+    done:        'bg-green-50 text-green-700 border border-green-200',
   };
-  return colors[status] || 'bg-gray-100 text-gray-700';
+  return colors[status] || 'bg-gray-100 text-gray-600 border border-gray-200';
 };
 
 export const getInitials = (name) => {

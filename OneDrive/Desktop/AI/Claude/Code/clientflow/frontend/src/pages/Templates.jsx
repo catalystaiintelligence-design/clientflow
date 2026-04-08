@@ -82,8 +82,12 @@ const Templates = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
-          <p className="text-gray-500 mt-1">Build reusable onboarding forms for your clients</p>
+          <div className="flex items-center gap-2 text-xs text-sf-muted mb-1">
+            <span>Home</span><span>/</span>
+            <span className="text-sf-slate font-medium">Templates</span>
+          </div>
+          <h1 className="text-2xl font-bold text-sf-slate">Templates</h1>
+          <p className="text-sf-muted text-sm mt-0.5">Build reusable onboarding forms for your clients</p>
         </div>
         <Button onClick={() => navigate('/templates/new')} className="gap-2">
           <Plus className="w-4 h-4" />
