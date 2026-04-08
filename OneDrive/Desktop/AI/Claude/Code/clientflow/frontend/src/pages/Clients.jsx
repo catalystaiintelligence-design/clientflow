@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Users, Mail, ExternalLink, Trash2, Copy, Check } from 'lucide-react';
+import { Plus, Search, Users, Mail, ExternalLink, Trash2, Copy, Check, Send, Link as LinkIcon } from 'lucide-react';
 import api from '../utils/api';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -14,8 +14,12 @@ import Toast from '../components/Toast';
 
 const NewClientModal = ({ open, onClose, templates, onCreated }) => {
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', templateId: '' });
   const [errors, setErrors] = useState({});
+  const [createdClient, setCreatedClient] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   const { toasts, toast, removeToast } = useToast();
 
   const validate = () => {
@@ -35,11 +39,10 @@ const NewClientModal = ({ open, onClose, templates, onCreated }) => {
         name: form.name,
         email: form.email,
         templateId: form.templateId || undefined,
+        sendInvite: false,
       });
       onCreated(res.data);
-      setForm({ name: '', email: '', templateId: '' });
-      setErrors({});
-      onClose();
+      setCreatedClient(res.data);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to create client');
     } finally {
@@ -47,46 +50,148 @@ const NewClientModal = ({ open, onClose, templates, onCreated }) => {
     }
   };
 
+  const handleSendEmail = async () => {
+    if (!createdClient) return;
+    setSending(true);
+    try {
+      await api.post(`/clients/${createdClient.id}/resend-invite`);
+      setEmailSent(true);
+      toast.success('Invite email sent!');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to send email');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const portalUrl = createdClient
+    ? `${window.location.origin}/portal/${createdClient.portalToken}`
+    : '';
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(portalUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
+
+  const handleClose = () => {
+    setCreatedClient(null);
+    setForm({ name: '', email: '', templateId: '' });
+    setErrors({});
+    setEmailSent(false);
+    setCopied(false);
+    onClose();
+  };
+
   return (
     <>
       <Toast toasts={toasts} removeToast={removeToast} />
-      <Modal open={open} onClose={onClose} title="Add New Client">
-        <div className="space-y-4">
-          <Input
-            label="Client Name"
-            placeholder="Acme Corp"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            error={errors.name}
-            required
-          />
-          <Input
-            label="Client Email"
-            type="email"
-            placeholder="contact@acmecorp.com"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            error={errors.email}
-            required
-          />
-          <Select
-            label="Onboarding Template"
-            placeholder="Select a template (optional)"
-            value={form.templateId}
-            onChange={(e) => setForm({ ...form, templateId: e.target.value })}
-            options={templates.map((t) => ({ value: t.id, label: t.name }))}
-          />
-          <p className="text-xs text-gray-500">
-            A unique portal link will be created and an invite email will be sent.
-          </p>
-          <div className="flex gap-3 justify-end pt-2">
-            <Button variant="secondary" onClick={onClose}>Cancel</Button>
-            <Button loading={loading} onClick={handleSubmit}>
-              <Plus className="w-4 h-4" />
-              Create Client
-            </Button>
+      <Modal open={open} onClose={handleClose} title={createdClient ? 'Client Added!' : 'Add New Client'}>
+        {createdClient ? (
+          <div className="space-y-5">
+            {/* Success state */}
+            <div className="flex items-center gap-3 p-4 bg-green-50 rounded-xl border border-green-100">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <Check className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">{createdClient.name} was added</p>
+                <p className="text-sm text-gray-500">{createdClient.email}</p>
+              </div>
+            </div>
+
+            {/* Portal link */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <LinkIcon className="w-4 h-4 inline mr-1" />
+                Onboarding Portal Link
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600 truncate">
+                  {portalUrl}
+                </div>
+                <button
+                  onClick={copyLink}
+                  className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                >
+                  {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Share this link with your client to start onboarding.</p>
+            </div>
+
+            {/* Send email */}
+            <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-800">Send Invite Email</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Send the portal link directly to <strong>{createdClient.email}</strong>
+                </p>
+              </div>
+              {emailSent ? (
+                <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+                  <Check className="w-4 h-4" />
+                  Email sent to {createdClient.email}
+                </div>
+              ) : (
+                <Button
+                  onClick={handleSendEmail}
+                  loading={sending}
+                  className="w-full gap-2"
+                >
+                  <Send className="w-4 h-4" />
+                  Send Email Invite
+                </Button>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <Button variant="secondary" onClick={handleClose}>Done</Button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-4">
+            <Input
+              label="Client Name"
+              placeholder="Acme Corp"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              error={errors.name}
+              required
+            />
+            <Input
+              label="Client Email"
+              type="email"
+              placeholder="contact@acmecorp.com"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              error={errors.email}
+              required
+            />
+            <Select
+              label="Onboarding Template"
+              placeholder="Select a template (optional)"
+              value={form.templateId}
+              onChange={(e) => setForm({ ...form, templateId: e.target.value })}
+              options={templates.map((t) => ({ value: t.id, label: t.name }))}
+            />
+            <p className="text-xs text-gray-500">
+              A unique portal link will be generated. You can send the invite email on the next step.
+            </p>
+            <div className="flex gap-3 justify-end pt-2">
+              <Button variant="secondary" onClick={handleClose}>Cancel</Button>
+              <Button loading={loading} onClick={handleSubmit}>
+                <Plus className="w-4 h-4" />
+                Create Client
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </>
   );
